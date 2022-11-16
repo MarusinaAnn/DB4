@@ -18,7 +18,8 @@ group by a.album_title;
 select p.alias, a.release_year from performer p
 join performeralbum pa on p.performerid = pa.performerid 
 join album a on pa.albumid = a.albumid 
-where a.release_year != 2020;
+where pa.performerid not in (select pa.performerid from performeralbum
+where a.release_year = 2020);
 
 -- названия сборников, в которых присутствует конкретный исполнитель (выберите сами)
 select mc.collection_title, p.alias from performer p
@@ -43,18 +44,18 @@ left join trackcollection tc on t.trackid = tc.trackid
 where tc.trackid is null;
 
 -- исполнителя(-ей), написавшего самый короткий по продолжительности трек (теоретически таких треков может быть несколько)
-select p.alias, min(t.duration) from performer p
+select alias from performer p
 join performeralbum pa on p.performerid = pa.performerid 
 join album a on pa.albumid = a.albumid 
 join track t on a.albumid = t.albumid 
-group by p.alias
-order by min(t.duration)
-limit 1;
+where t.duration in (select min(duration) from track);
 
 -- название альбомов, содержащих наименьшее количество треков
-select a.album_title, count(t.trackid) amount into new_table from album a
+select a.album_title, count(t.trackid) from album a
 join track t on a.albumid = t.albumid 
-group by a.album_title; 
-
-select * from new_table
-where amount = (select min(amount) from new_table);
+group by a.album_title
+having count(t.trackid) in (select count(t.trackid) from album a
+join track t on a.albumid = t.albumid 
+group by a.album_title
+order by count(t.trackid)
+limit 1);
